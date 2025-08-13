@@ -61,13 +61,15 @@ jobs:
 
           # Add BusyBox & symlinks
           cp /usr/bin/busybox initramfs/bin/
-          for cmd in sh mount uname true sleep; do ln -sf busybox initramfs/bin/$cmd; done
+          for cmd in sh mount uname true sleep ip ifconfig; do ln -sf busybox initramfs/bin/$cmd; done
           ln -sf ../bin/busybox initramfs/sbin/poweroff
 
           # Generate init script
           cat > initramfs/init << 'EOF'
           #!/bin/sh
           set -e
+
+          ip link set lo up
 
           # mkdir -p /dev
           # # create device nodes, as some tests require them
@@ -93,6 +95,8 @@ jobs:
           qemu-system-x86_64 \
             -kernel linux-${{ env.KERNEL_VERSION }}/arch/x86/boot/bzImage \
             -initrd initramfs.cpio.gz \
+            -netdev user,id=net0 \
+            -device e1000,netdev=net0 \
             -append "console=ttyS0 rootfstype=ramfs panic=1" \
             -nographic -no-reboot -m 1024 -action panic=exit-failure 2>&1 | tee qemu-output.log
           # qemu always exits with 0, so we check if the tests passed by using grep.
