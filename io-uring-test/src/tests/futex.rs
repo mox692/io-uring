@@ -157,7 +157,8 @@ pub fn test_futex_waitv<S: squeue::EntryMarker, C: cqueue::EntryMarker>(
     for (futex, waitv) in futexes.iter().zip(&mut waitv) {
         *waitv = FutexWaitV::new()
             .val(INIT_VAL as u64)
-            .uaddr(std::ptr::from_ref(futex) as _)
+            // .uaddr(std::ptr::from_ref(futex) as _)
+            .uaddr(futex as *const u32 as _) // <- correct: pointer to the u32
             .flags(FUTEX2_SIZE_U32);
     }
 
