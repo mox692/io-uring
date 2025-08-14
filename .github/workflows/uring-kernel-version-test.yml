@@ -61,7 +61,7 @@ jobs:
 
           # Add BusyBox & symlinks
           cp /usr/bin/busybox initramfs/bin/
-          for cmd in sh mount uname true sleep ip ifconfig; do ln -sf busybox initramfs/bin/$cmd; done
+          for cmd in sh mount uname true sleep ip ifconfig cat; do ln -sf busybox initramfs/bin/$cmd; done
           ln -sf ../bin/busybox initramfs/sbin/poweroff
 
           # Generate init script
@@ -71,11 +71,11 @@ jobs:
 
           ip link set lo up
 
-          # mkdir -p /dev
-          # # create device nodes, as some tests require them
-          # mknod /dev/null c 1 3
-          # mknod /dev/zero c 1 5
-          # mknod /dev/tty c 5 0
+          mkdir -p /dev
+          # create device nodes, as some tests require them
+          mknod /dev/null c 1 3
+          mknod /dev/zero c 1 5
+          mknod /dev/tty c 5 0
 
           mount -t proc proc /proc
           mount -t sysfs sysfs /sys
