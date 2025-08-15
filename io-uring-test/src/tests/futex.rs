@@ -149,43 +149,6 @@ pub fn test_futex_waitv<S: squeue::EntryMarker, C: cqueue::EntryMarker>(
 
     println!("test futex_waitv");
 
-    // Additional runtime check for FUTEX_WAITV support
-    // The probe might report support even when the kernel doesn't fully implement it
-    let mut test_futex = 0u32;
-    let test_waitv = FutexWaitV::new()
-        .val(1) // Use different value to ensure immediate return
-        .uaddr(&test_futex as *const u32 as _)
-        .flags(FUTEX2_SIZE_U32);
-    let test_waitv_array = [test_waitv];
-    let test_waitv_e = opcode::FutexWaitV::new(test_waitv_array.as_ptr().cast(), 1);
-
-    unsafe {
-        let mut queue = ring.submission();
-        queue
-            .push(&test_waitv_e.build().user_data(USER_DATA).into())
-            .expect("queue is full");
-    }
-
-    ring.submit()?;
-    ring.submit_and_wait(1)?;
-    let cqes: Vec<cqueue::Entry> = ring.completion().map(Into::into).collect();
-
-    if !cqes.is_empty() {
-        let result = cqes[0].result();
-        // ENOENT (2) indicates the operation is not supported
-        if result == -2 {
-            println!("FUTEX_WAITV not supported by kernel, skipping test");
-            return Ok(());
-        }
-        // EAGAIN (-11) is expected since values don't match
-        if result != -11 {
-            return Err(anyhow::anyhow!(
-                "Unexpected result from FUTEX_WAITV probe: {}",
-                result
-            ));
-        }
-    }
-
     const FUTEX_CNT: usize = 5;
     const TRIGGER_IDX: usize = 3;
 
@@ -194,8 +157,7 @@ pub fn test_futex_waitv<S: squeue::EntryMarker, C: cqueue::EntryMarker>(
     for (futex, waitv) in futexes.iter().zip(&mut waitv) {
         *waitv = FutexWaitV::new()
             .val(INIT_VAL as u64)
-            // .uaddr(std::ptr::from_ref(futex) as _)
-            .uaddr(futex as *const u32 as _) // <- correct: pointer to the u32
+            .uaddr(std::ptr::from_ref(futex) as _)
             .flags(FUTEX2_SIZE_U32);
     }
 

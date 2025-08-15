@@ -1016,7 +1016,7 @@ pub fn test_file_direct_write_read<S: squeue::EntryMarker, C: cqueue::EntryMarke
         .read(true)
         .write(true)
         .create_new(true)
-        // .custom_flags(libc::O_DIRECT)
+        .custom_flags(libc::O_DIRECT)
         .open(dir.path().join("io-uring-test-file"))?;
     let fd = types::Fd(fd.as_raw_fd());
 
@@ -1055,7 +1055,6 @@ pub fn test_file_direct_write_read<S: squeue::EntryMarker, C: cqueue::EntryMarke
     assert_eq!(input.0[..], output.0[..]);
     assert_eq!(input.0[0], 0xf9);
 
-    // Test unaligned buffer - only applicable when using O_DIRECT
     // fail
 
     let mut buf = Box::new(AlignedBuffer([0; 4096]));

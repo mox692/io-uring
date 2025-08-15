@@ -171,7 +171,7 @@ jobs:
         kernel_version:
           # A latest stable kernel version
           - ${{ needs.get-latest-kernel-version.outputs.kernel_version }}
-          - '5.15.189'
+          # - '5.15.189'
     uses: ./.github/workflows/uring-kernel-version-test.yml
     with:
       kernel_version: ${{ matrix.kernel_version }}

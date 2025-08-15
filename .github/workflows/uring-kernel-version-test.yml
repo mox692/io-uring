@@ -21,7 +21,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             build-essential bison flex libssl-dev libelf-dev \
-            qemu-system-x86 busybox-static cpio xz-utils wget
+            qemu-system-x86 busybox-static cpio xz-utils wget e2fsprogs
+
+      - name: Create ext4 test disk
+        run: |
+          dd if=/dev/zero of=disk.img bs=1M count=64
+          mkfs.ext4 -F disk.img
+
       - name: Cache Linux source
         id: cache-kernel
         uses: actions/cache@v4
@@ -37,6 +43,17 @@ jobs:
           tar xf linux-${KERNEL_VERSION}.tar.xz
           cd linux-${KERNEL_VERSION}
           make defconfig
+
+          # enable essentials as built-ins
+          scripts/config --enable CONFIG_DEVTMPFS
+          scripts/config --enable CONFIG_DEVTMPFS_MOUNT
+          scripts/config --enable CONFIG_VIRTIO
+          scripts/config --enable CONFIG_VIRTIO_PCI
+          scripts/config --enable CONFIG_VIRTIO_BLK
+          scripts/config --enable CONFIG_EXT4_FS
+
+          make olddefconfig
+
           make -j$(nproc)
 
       - name: Generate test binaries with io_uring enabled
@@ -81,11 +98,22 @@ jobs:
           mknod /dev/zero c 1 5
           mknod /dev/tty c 5 0
 
+          # devtmpfs gives us /dev/vda without udev
+          mount -t devtmpfs devtmpfs /dev
+
           mount -t proc proc /proc
           mount -t sysfs sysfs /sys
           mkdir -p /tmp && mount -t tmpfs -o mode=1777 tmpfs /tmp
           # for f in /bin/tests/*; do RUST_BACKTRACE=1 "$f" ; done
 
+          # Bring up ext4 test volume at /mnt
+          mkdir -p /mnt
+          # wait briefly for /dev/vda to appear
+          for i in $(seq 1 50); do [ -e /dev/vda ] && break; sleep 0.1; done
+          mount -t ext4 /dev/vda /mnt
+
+          # run tests from a filesystem that supports O_DIRECT
+          cd /mnt
 
           exit_code=0
 
@@ -108,6 +136,7 @@ jobs:
             -device isa-debug-exit,iobase=0xf4,iosize=0x04 \
             -kernel linux-${{ env.KERNEL_VERSION }}/arch/x86/boot/bzImage \
             -initrd initramfs.cpio.gz \
+            -drive if=virtio,format=raw,file=disk.img \
             -netdev user,id=net0 \
             -device e1000,netdev=net0 \
             -append "console=ttyS0 rootfstype=ramfs panic=1" \
