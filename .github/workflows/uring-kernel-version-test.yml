@@ -42,6 +42,7 @@ jobs:
           wget https://cdn.kernel.org/pub/linux/kernel/v${MAJOR}.x/linux-${KERNEL_VERSION}.tar.xz
           tar xf linux-${KERNEL_VERSION}.tar.xz
           cd linux-${KERNEL_VERSION}
+
           make defconfig
 
           # enable essentials as built-ins
@@ -86,6 +87,7 @@ jobs:
           #!/bin/sh
           set -e
 
+          # Activating the loopback interface
           ip link set lo up
 
           mkdir -p /dev
@@ -108,8 +110,10 @@ jobs:
 
           # Bring up ext4 test volume at /mnt
           mkdir -p /mnt
+
           # wait briefly for /dev/vda to appear
-          for i in $(seq 1 50); do [ -e /dev/vda ] && break; sleep 0.1; done
+          # for i in $(seq 1 50); do [ -e /dev/vda ] && break; sleep 0.1; done
+
           mount -t ext4 /dev/vda /mnt
 
           # run tests from a filesystem that supports O_DIRECT
@@ -126,7 +130,9 @@ jobs:
           /sbin/poweroff -f
 
           EOF
+
           chmod +x initramfs/init
+
           # Pack into a CPIO archive
           (cd initramfs && find . -print0 \
             | cpio --null -ov --format=newc | gzip -9 > ../initramfs.cpio.gz)
