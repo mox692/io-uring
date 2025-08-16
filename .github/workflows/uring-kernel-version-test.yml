@@ -115,11 +115,12 @@ jobs:
 
           exit_code=0
 
-          # Run the io_uring test binary
+          # Run the test binary
           RUST_BACKTRACE=1 /bin/io-uring-test || exit_code=1
 
+          # If the test binary exited with a non-zero code, write it to /dev/port
           [ $exit_code -eq 0 ] || printf '\x01' \
-            | dd of=/dev/port bs=1 seek=244 count=1 conv=notrunc 2>/dev/null
+            | dd of=/dev/port bs=1 seek=244 count=1 2>/dev/null
 
           /sbin/poweroff -f
 
