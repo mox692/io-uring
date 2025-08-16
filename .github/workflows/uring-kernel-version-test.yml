@@ -43,31 +43,36 @@ jobs:
           tar xf linux-${KERNEL_VERSION}.tar.xz
           cd linux-${KERNEL_VERSION}
 
+          # Generate the default config
           make defconfig
 
           # enable essentials as built-ins
           scripts/config --enable CONFIG_DEVTMPFS
           scripts/config --enable CONFIG_DEVTMPFS_MOUNT
+
+          # Enable virtio drivers, which is used by QEMU
           scripts/config --enable CONFIG_VIRTIO
           scripts/config --enable CONFIG_VIRTIO_PCI
           scripts/config --enable CONFIG_VIRTIO_BLK
+
+          # Enable ext4 filesystem
           scripts/config --enable CONFIG_EXT4_FS
 
+          # Generate the updated config
           make olddefconfig
 
           make -j$(nproc)
 
-      - name: Generate test binaries with io_uring enabled
+      - name: Generate test binaries
         run: |
           rustup target add x86_64-unknown-linux-musl
           cargo build --package io-uring-test --features io-uring-test/ci --release --target x86_64-unknown-linux-musl
 
       - name: Prepare initramfs + tests binaries
         run: |
-          set -e
-          rm -rf initramfs
-          mkdir -p initramfs/{bin,sbin,proc,sys,tmp}
+          rm -rf initramfs && mkdir -p initramfs/{bin,sbin,proc,sys,tmp}
 
+          # Copy the test binary
           cp target/x86_64-unknown-linux-musl/release/io-uring-test initramfs/bin/
 
           # Add BusyBox & symlinks
