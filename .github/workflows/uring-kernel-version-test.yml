@@ -77,7 +77,7 @@ jobs:
 
           # Add BusyBox & symlinks
           cp /usr/bin/busybox initramfs/bin/
-          for cmd in sh mount uname true sleep ip ifconfig cat; do ln -sf busybox initramfs/bin/$cmd; done
+          for cmd in sh mount ip ifconfig cat; do ln -sf busybox initramfs/bin/$cmd; done
           ln -sf ../bin/busybox initramfs/sbin/poweroff
 
           # Generate init script
