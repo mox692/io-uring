@@ -97,8 +97,6 @@ jobs:
           mknod /dev/zero c 1 5
           mknod /dev/tty c 5 0
 
-          # mount -t proc proc /proc
-          # mount -t sysfs sysfs /sys
           mkdir -p /tmp && mount -t tmpfs -o mode=1777 tmpfs /tmp
 
           # Bring up ext4 test volume at /mnt
