@@ -46,7 +46,7 @@ jobs:
           # Generate the default config
           make defconfig
 
-          # enable essentials as built-ins
+          # Enable essentials as built-ins
           scripts/config --enable CONFIG_DEVTMPFS
           scripts/config --enable CONFIG_DEVTMPFS_MOUNT
 
@@ -55,7 +55,7 @@ jobs:
           scripts/config --enable CONFIG_VIRTIO_PCI
           scripts/config --enable CONFIG_VIRTIO_BLK
 
-          # Enable ext4 filesystem
+          # Enable ext4 filesystem, as some tests require O_DIRECT operations
           scripts/config --enable CONFIG_EXT4_FS
 
           # Generate the updated config
@@ -90,27 +90,23 @@ jobs:
 
           mkdir -p /dev
 
-          # This is required for setting an exit code in QEMU
+          # Enable necessary devices
+          # https://www.kernel.org/doc/Documentation/admin-guide/devices.txt
           mknod /dev/port c 1 4
-
-          # create device files, as some tests require them
           mknod /dev/null c 1 3
           mknod /dev/zero c 1 5
           mknod /dev/tty c 5 0
-
-          # devtmpfs gives us /dev/vda without udev
-          mount -t devtmpfs devtmpfs /dev
 
           mount -t proc proc /proc
           mount -t sysfs sysfs /sys
           mkdir -p /tmp && mount -t tmpfs -o mode=1777 tmpfs /tmp
 
           # Bring up ext4 test volume at /mnt
+          mount -t devtmpfs devtmpfs /dev
           mkdir -p /mnt
-
           mount -t ext4 /dev/vda /mnt
 
-          # run tests from a filesystem that supports O_DIRECT
+          # Run tests from a filesystem that supports O_DIRECT
           cd /mnt
 
           exit_code=0
@@ -118,7 +114,8 @@ jobs:
           # Run the test binary
           RUST_BACKTRACE=1 /bin/io-uring-test || exit_code=1
 
-          # If the test binary exited with a non-zero code, write it to /dev/port
+          # If the test binary exited with a non-zero code, write it to /dev/port.
+          # This lets QEMU exit with non-zero exit-code, triggering a CI error.
           [ $exit_code -eq 0 ] || printf '\x01' \
             | dd of=/dev/port bs=1 seek=244 count=1 2>/dev/null
 
@@ -144,7 +141,6 @@ jobs:
             -append "console=ttyS0 rootfstype=ramfs panic=1" \
             -nographic -no-reboot -m 1024 -action panic=exit-failure
 
-          # qemu always exits with 0, so we check if the tests passed by using grep.
           if [ $? -ne 0 ]; then
             echo "tests failed (QEMU exited abnormally)"
             exit 1
