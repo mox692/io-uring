@@ -1,4 +1,4 @@
-name: Uring Kernel Version Test
+name: Kernel Version Test
 
 on:
   workflow_call:
@@ -63,7 +63,7 @@ jobs:
 
           make -j$(nproc)
 
-      - name: Generate test binaries
+      - name: Generate the test binary
         run: |
           rustup target add x86_64-unknown-linux-musl
           cargo build --package io-uring-test --features io-uring-test/ci --release --target x86_64-unknown-linux-musl
@@ -75,7 +75,7 @@ jobs:
           # Copy the test binary
           cp target/x86_64-unknown-linux-musl/release/io-uring-test initramfs/bin/
 
-          # Add BusyBox & symlinks
+          # Add necessary binaries from busybox
           cp /usr/bin/busybox initramfs/bin/
           for cmd in sh mount ip ifconfig cat; do ln -sf busybox initramfs/bin/$cmd; done
           ln -sf ../bin/busybox initramfs/sbin/poweroff
@@ -85,7 +85,7 @@ jobs:
           #!/bin/sh
           set -e
 
-          # Activating the loopback interface
+          # Activating the loopback interface (it's required for some network tests)
           ip link set lo up
 
           mkdir -p /dev
