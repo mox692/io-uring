@@ -99,7 +99,7 @@ jobs:
 
           # mount -t proc proc /proc
           # mount -t sysfs sysfs /sys
-          # mkdir -p /tmp && mount -t tmpfs -o mode=1777 tmpfs /tmp
+          mkdir -p /tmp && mount -t tmpfs -o mode=1777 tmpfs /tmp
 
           # Bring up ext4 test volume at /mnt
           mount -t devtmpfs devtmpfs /dev
